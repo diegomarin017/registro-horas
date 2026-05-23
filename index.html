@@ -21,6 +21,8 @@
     --accent-soft:#1d2740;
     --analisis:#37c2a0;
     --analisis-soft:#11261f;
+    --diego:#5b8def;
+    --ivan:#e0a458;
     --danger:#e2554f;
     --radius:14px;
     --radius-sm:10px;
@@ -55,6 +57,21 @@
   .mini.t .dot,.mini.a .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .mini.t .dot{background:var(--accent);}
   .mini.a .dot{background:var(--analisis);}
+
+  .personas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;}
+  .pcard .pn{font-size:12px;color:var(--text-2);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+  .pcard .pn .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .pcard.d .pn .dot{background:var(--diego);}
+  .pcard.i .pn .dot{background:var(--ivan);}
+  .pcard .pe{font-size:20px;font-weight:600;letter-spacing:-0.01em;}
+  .pcard.d .pe{color:var(--diego);}
+  .pcard.i .pe{color:var(--ivan);}
+  .pcard .ph{font-size:13px;color:var(--text-2);margin-top:2px;}
+  .flabel{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin:0 0 6px 2px;}
+  .flabel.mt{margin-top:12px;}
+  .cat.on.pd{background:var(--accent-soft);border-color:var(--diego);color:#a9c4ff;}
+  .cat.on.pi{background:#2a210f;border-color:var(--ivan);color:#f0c489;}
 
   .form{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:24px;}
   .cats{display:flex;gap:8px;margin-bottom:10px;}
@@ -98,6 +115,8 @@
   .item .l1 .tag.a{background:var(--analisis);}
   .item .l2{font-size:12px;color:var(--text-2);margin-top:2px;}
   .item .proj{display:inline-block;margin-top:5px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
+  .item .who{display:inline-block;margin-top:5px;margin-left:6px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
+  .item .who .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;}
   .item .del{background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
   .item .del:active{color:var(--danger);}
   .vacio{font-size:14px;color:var(--text-3);text-align:center;padding:30px 0;}
@@ -120,12 +139,31 @@
   </div>
 </div>
 
+<div class="personas">
+  <div class="pcard d">
+    <div class="pn"><span class="dot"></span>Diego</div>
+    <div class="pe" id="e-diego">0&nbsp;&euro;</div>
+    <div class="ph"><span id="h-diego">0</span> h</div>
+  </div>
+  <div class="pcard i">
+    <div class="pn"><span class="dot"></span>Iv&aacute;n</div>
+    <div class="pe" id="e-ivan">0&nbsp;&euro;</div>
+    <div class="ph"><span id="h-ivan">0</span> h</div>
+  </div>
+</div>
+
 <div class="desglose">
   <div class="mini t"><div class="label"><span class="dot"></span>Trabajo</div><div class="value"><span id="h-trabajo">0</span> h</div></div>
   <div class="mini a"><div class="label"><span class="dot"></span>An&aacute;lisis</div><div class="value"><span id="h-analisis">0</span> h</div></div>
 </div>
 
 <div class="form">
+  <div class="flabel">Qui&eacute;n a&ntilde;ade las horas</div>
+  <div class="cats">
+    <button class="cat pd on" id="per-diego" type="button">Diego</button>
+    <button class="cat pi" id="per-ivan" type="button">Iv&aacute;n</button>
+  </div>
+  <div class="flabel mt">Tipo</div>
   <div class="cats">
     <button class="cat t on" id="cat-trabajo" type="button">Trabajo</button>
     <button class="cat a" id="cat-analisis" type="button">An&aacute;lisis</button>
@@ -163,6 +201,7 @@
   var registros = [];
   var proyectos = [PROYECTO_DEFECTO];
   var proyectoSel = PROYECTO_DEFECTO;
+  var personaSel = "Diego";
 
   function semillaInicial(){
     return [
@@ -268,6 +307,23 @@
   catT.addEventListener("click", function(){ categoria="trabajo"; catT.classList.add("on"); catA.classList.remove("on"); });
   catA.addEventListener("click", function(){ categoria="analisis"; catA.classList.add("on"); catT.classList.remove("on"); });
 
+  // --- Selector de persona ---
+  var perD = document.getElementById("per-diego");
+  var perI = document.getElementById("per-ivan");
+  function setPersona(p){
+    personaSel = (p==="Iván") ? "Iván" : "Diego";
+    if(perD) perD.classList.toggle("on", personaSel==="Diego");
+    if(perI) perI.classList.toggle("on", personaSel==="Iván");
+    try{ localStorage.setItem("rhPersonaSel", personaSel); }catch(e){}
+  }
+  if(perD && perI){
+    perD.addEventListener("click", function(){ setPersona("Diego"); });
+    perI.addEventListener("click", function(){ setPersona("Iván"); });
+    var perGuardada = "Diego";
+    try{ var pg = localStorage.getItem("rhPersonaSel"); if(pg){ perGuardada = pg; } }catch(e){}
+    setPersona(perGuardada);
+  }
+
   // --- Selector de proyecto ---
   try{ var guardadoSel = localStorage.getItem("rhProyectoSel"); if(guardadoSel){ proyectoSel = guardadoSel; } }catch(e){}
 
@@ -299,6 +355,7 @@
   }
 
   function nombre(c){ return c==="trabajo" ? "Trabajo" : "Análisis"; }
+  function colorPersona(p){ return p==="Iván" ? "var(--ivan)" : (p==="Diego" ? "var(--diego)" : "var(--text-3)"); }
   function fmtH(n){ return (Math.round(n*100)/100).toString(); }
   function fmtE(n){ return (Math.round(n*100)/100).toLocaleString("es-ES") + " €"; }
 
@@ -308,13 +365,22 @@
   function horaTexto(d){ var h=d.getHours(),m=d.getMinutes(); return (h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
 
   function render(){
-    var hT=0,hA=0;
-    registros.forEach(function(r){ if(r.cat==="trabajo") hT+=r.horas; else hA+=r.horas; });
+    var hT=0,hA=0,hDiego=0,hIvan=0;
+    registros.forEach(function(r){
+      if(r.cat==="trabajo") hT+=r.horas; else hA+=r.horas;
+      if(r.persona==="Diego") hDiego+=r.horas;
+      else if(r.persona==="Iván") hIvan+=r.horas;
+      else { hDiego+=r.horas/2; hIvan+=r.horas/2; } // registros antiguos: repartidos a partes iguales
+    });
     var total=hT+hA;
     document.getElementById("h-trabajo").textContent = fmtH(hT);
     document.getElementById("h-analisis").textContent = fmtH(hA);
     document.getElementById("total-horas").textContent = fmtH(total);
     document.getElementById("total-euros").innerHTML = fmtE(total*TARIFA).replace(" €","&nbsp;€");
+    document.getElementById("h-diego").textContent = fmtH(hDiego);
+    document.getElementById("e-diego").innerHTML = fmtE(hDiego*TARIFA).replace(" €","&nbsp;€");
+    document.getElementById("h-ivan").textContent = fmtH(hIvan);
+    document.getElementById("e-ivan").innerHTML = fmtE(hIvan*TARIFA).replace(" €","&nbsp;€");
 
     diasEl.innerHTML="";
     if(registros.length===0){
@@ -347,7 +413,8 @@
         var tagCls = r.cat==="trabajo" ? "t" : "a";
         left.innerHTML='<div class="l1"><span class="tag '+tagCls+'"></span>'+nombre(r.cat)+' · '+fmtH(r.horas)+' h</div>'+
                        '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
-                       (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'');
+                       (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'')+
+                       '<span class="who"><span class="dot" style="background:'+colorPersona(r.persona)+'"></span>'+(r.persona?escapeHtml(r.persona):'Repartido')+'</span>';
         var del=document.createElement("button"); del.className="del"; del.type="button"; del.setAttribute("aria-label","Eliminar"); del.innerHTML="&times;";
         del.addEventListener("click", function(){
           registros = registros.filter(function(x){ return x.id !== r.id; });
@@ -365,7 +432,7 @@
   function add(){
     var v=parseFloat((inHoras.value||"").replace(",","."));
     if(isNaN(v)||v<=0){ inHoras.focus(); return; }
-    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
+    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), persona:personaSel, cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
     inHoras.value=""; inDesc.value=""; inHoras.blur();
     guardarNube(); render();
   }
