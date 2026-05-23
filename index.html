@@ -24,6 +24,7 @@
     --diego:#5b8def;
     --ivan:#e0a458;
     --ambos:#b083e0;
+    --reunion:#d77ba8;
     --danger:#e2554f;
     --radius:14px;
     --radius-sm:10px;
@@ -51,13 +52,14 @@
   .total-card .value{font-size:26px;font-weight:600;letter-spacing:-0.02em;}
   .total-card .value.euros{color:var(--accent);}
 
-  .desglose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .desglose{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px;}
   .mini{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 13px;}
   .mini .label{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
   .mini .value{font-size:16px;font-weight:600;}
   .mini.t .dot,.mini.a .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .mini.t .dot{background:var(--accent);}
   .mini.a .dot{background:var(--analisis);}
+  .mini.r .dot{background:var(--reunion);}
 
   .personas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
   .pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;}
@@ -80,6 +82,7 @@
   .cat{flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--line);background:transparent;color:var(--text-2);font-size:15px;font-weight:500;cursor:pointer;transition:all .12s;font-family:inherit;}
   .cat.on.t{background:var(--accent-soft);border-color:var(--accent);color:#a9c4ff;}
   .cat.on.a{background:var(--analisis-soft);border-color:var(--analisis);color:#7fe3cd;}
+  .cat.on.r{background:#2c1a24;border-color:var(--reunion);color:#eab4ce;}
   input[type=text],input[type=number]{
     width:100%;padding:12px 13px;border-radius:var(--radius-sm);border:1px solid var(--line);
     background:var(--surface-2);color:var(--text);font-size:16px;font-family:inherit;margin-bottom:10px;
@@ -115,6 +118,7 @@
   .item .l1 .tag{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;}
   .item .l1 .tag.t{background:var(--accent);}
   .item .l1 .tag.a{background:var(--analisis);}
+  .item .l1 .tag.r{background:var(--reunion);}
   .item .l2{font-size:12px;color:var(--text-2);margin-top:2px;}
   .item .proj{display:inline-block;margin-top:5px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
   .item .who{display:inline-block;margin-top:5px;margin-left:6px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
@@ -157,6 +161,7 @@
 <div class="desglose">
   <div class="mini t"><div class="label"><span class="dot"></span>Trabajo</div><div class="value"><span id="h-trabajo">0</span> h</div></div>
   <div class="mini a"><div class="label"><span class="dot"></span>An&aacute;lisis</div><div class="value"><span id="h-analisis">0</span> h</div></div>
+  <div class="mini r"><div class="label"><span class="dot"></span>Reuni&oacute;n</div><div class="value"><span id="h-reunion">0</span> h</div></div>
 </div>
 
 <div class="form">
@@ -170,6 +175,7 @@
   <div class="cats">
     <button class="cat t on" id="cat-trabajo" type="button">Trabajo</button>
     <button class="cat a" id="cat-analisis" type="button">An&aacute;lisis</button>
+    <button class="cat r" id="cat-reunion" type="button">Reuni&oacute;n</button>
   </div>
   <select id="in-proyecto" class="sel" aria-label="Proyecto"></select>
   <input type="text" id="in-desc" placeholder="Descripci&oacute;n (opcional)" autocomplete="off">
@@ -300,6 +306,7 @@
 
   var catT = document.getElementById("cat-trabajo");
   var catA = document.getElementById("cat-analisis");
+  var catR = document.getElementById("cat-reunion");
   var inProyecto = document.getElementById("in-proyecto");
   var inDesc = document.getElementById("in-desc");
   var inHoras = document.getElementById("in-horas");
@@ -307,8 +314,15 @@
   var btnVaciar = document.getElementById("btn-vaciar");
   var diasEl = document.getElementById("dias");
 
-  catT.addEventListener("click", function(){ categoria="trabajo"; catT.classList.add("on"); catA.classList.remove("on"); });
-  catA.addEventListener("click", function(){ categoria="analisis"; catA.classList.add("on"); catT.classList.remove("on"); });
+  function setCategoria(c){
+    categoria = c;
+    catT.classList.toggle("on", c==="trabajo");
+    catA.classList.toggle("on", c==="analisis");
+    if(catR) catR.classList.toggle("on", c==="reunion");
+  }
+  catT.addEventListener("click", function(){ setCategoria("trabajo"); });
+  catA.addEventListener("click", function(){ setCategoria("analisis"); });
+  if(catR) catR.addEventListener("click", function(){ setCategoria("reunion"); });
 
   // --- Selector de persona ---
   var perD = document.getElementById("per-diego");
@@ -360,7 +374,7 @@
     });
   }
 
-  function nombre(c){ return c==="trabajo" ? "Trabajo" : "Análisis"; }
+  function nombre(c){ return c==="trabajo" ? "Trabajo" : (c==="reunion" ? "Reunión" : "Análisis"); }
   function colorPersona(p){ return p==="Iván" ? "var(--ivan)" : (p==="Diego" ? "var(--diego)" : (p==="Ambos" ? "var(--ambos)" : "var(--text-3)")); }
   function fmtH(n){ return (Math.round(n*100)/100).toString(); }
   function fmtE(n){ return (Math.round(n*100)/100).toLocaleString("es-ES") + " €"; }
@@ -371,16 +385,20 @@
   function horaTexto(d){ var h=d.getHours(),m=d.getMinutes(); return (h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
 
   function render(){
-    var hT=0,hA=0,hDiego=0,hIvan=0;
+    var hT=0,hA=0,hR=0,hDiego=0,hIvan=0;
     registros.forEach(function(r){
-      if(r.cat==="trabajo") hT+=r.horas; else hA+=r.horas;
-      if(r.persona==="Diego") hDiego+=r.horas;
-      else if(r.persona==="Iván") hIvan+=r.horas;
-      else { hDiego+=r.horas/2; hIvan+=r.horas/2; } // "Ambos" o registros antiguos: a medias, sin duplicar el total
+      var factor=1;
+      if(r.persona==="Diego"){ hDiego+=r.horas; }
+      else if(r.persona==="Iván"){ hIvan+=r.horas; }
+      else if(r.persona==="Ambos"){ hDiego+=r.horas; hIvan+=r.horas; factor=2; } // ambos dedican el tiempo completo cada uno
+      else { hDiego+=r.horas/2; hIvan+=r.horas/2; } // registros antiguos: repartidos a medias
+      var inc=r.horas*factor;
+      if(r.cat==="trabajo") hT+=inc; else if(r.cat==="reunion") hR+=inc; else hA+=inc;
     });
-    var total=hT+hA;
+    var total=hT+hA+hR;
     document.getElementById("h-trabajo").textContent = fmtH(hT);
     document.getElementById("h-analisis").textContent = fmtH(hA);
+    document.getElementById("h-reunion").textContent = fmtH(hR);
     document.getElementById("total-horas").textContent = fmtH(total);
     document.getElementById("total-euros").innerHTML = fmtE(total*TARIFA).replace(" €","&nbsp;€");
     document.getElementById("h-diego").textContent = fmtH(hDiego);
@@ -416,7 +434,7 @@
         var d=new Date(r.ts);
         var item=document.createElement("div"); item.className="item";
         var left=document.createElement("div");
-        var tagCls = r.cat==="trabajo" ? "t" : "a";
+        var tagCls = r.cat==="trabajo" ? "t" : (r.cat==="reunion" ? "r" : "a");
         left.innerHTML='<div class="l1"><span class="tag '+tagCls+'"></span>'+nombre(r.cat)+' · '+fmtH(r.horas)+' h</div>'+
                        '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
                        (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'')+
