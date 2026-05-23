@@ -444,8 +444,9 @@
         var item=document.createElement("div"); item.className="item";
         var left=document.createElement("div");
         var tagCls = r.cat==="trabajo" ? "t" : (r.cat==="reunion" ? "r" : "a");
+        var tiempoTxt = (r.horaInicio && r.horaFin) ? (escapeHtml(r.horaInicio)+' – '+escapeHtml(r.horaFin)) : horaTexto(d);
         left.innerHTML='<div class="l1"><span class="tag '+tagCls+'"></span>'+nombre(r.cat)+' · '+fmtH(r.horas)+' h</div>'+
-                       '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
+                       '<div class="l2">'+tiempoTxt+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
                        (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'')+
                        '<span class="who"><span class="dot" style="background:'+colorPersona(r.persona)+'"></span>'+(r.persona?escapeHtml(r.persona):'Repartido')+'</span>';
         var del=document.createElement("button"); del.className="del"; del.type="button"; del.setAttribute("aria-label","Eliminar"); del.innerHTML="&times;";
@@ -465,7 +466,9 @@
   function add(){
     var v=parseFloat((inHoras.value||"").replace(",","."));
     if(isNaN(v)||v<=0){ inHoras.focus(); return; }
-    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), persona:personaSel, cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
+    var reg = { id:"r"+Date.now()+Math.random().toString(36).slice(2,5), persona:personaSel, cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() };
+    if(inInicio.value && inFin.value){ reg.horaInicio = inInicio.value; reg.horaFin = inFin.value; }
+    registros.push(reg);
     inHoras.value=""; inDesc.value=""; inInicio.value=""; inFin.value=""; inHoras.blur();
     try{ localStorage.removeItem("rhInicioDraft"); localStorage.removeItem("rhFinDraft"); }catch(e){}
     guardarNube(); render();
