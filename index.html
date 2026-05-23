@@ -23,6 +23,7 @@
     --analisis-soft:#11261f;
     --diego:#5b8def;
     --ivan:#e0a458;
+    --ambos:#b083e0;
     --danger:#e2554f;
     --radius:14px;
     --radius-sm:10px;
@@ -72,6 +73,7 @@
   .flabel.mt{margin-top:12px;}
   .cat.on.pd{background:var(--accent-soft);border-color:var(--diego);color:#a9c4ff;}
   .cat.on.pi{background:#2a210f;border-color:var(--ivan);color:#f0c489;}
+  .cat.on.pb{background:#241c33;border-color:var(--ambos);color:#d5c2f0;}
 
   .form{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:24px;}
   .cats{display:flex;gap:8px;margin-bottom:10px;}
@@ -162,6 +164,7 @@
   <div class="cats">
     <button class="cat pd on" id="per-diego" type="button">Diego</button>
     <button class="cat pi" id="per-ivan" type="button">Iv&aacute;n</button>
+    <button class="cat pb" id="per-ambos" type="button">Ambos</button>
   </div>
   <div class="flabel mt">Tipo</div>
   <div class="cats">
@@ -310,15 +313,18 @@
   // --- Selector de persona ---
   var perD = document.getElementById("per-diego");
   var perI = document.getElementById("per-ivan");
+  var perB = document.getElementById("per-ambos");
   function setPersona(p){
-    personaSel = (p==="Iván") ? "Iván" : "Diego";
+    personaSel = (p==="Iván"||p==="Ambos") ? p : "Diego";
     if(perD) perD.classList.toggle("on", personaSel==="Diego");
     if(perI) perI.classList.toggle("on", personaSel==="Iván");
+    if(perB) perB.classList.toggle("on", personaSel==="Ambos");
     try{ localStorage.setItem("rhPersonaSel", personaSel); }catch(e){}
   }
   if(perD && perI){
     perD.addEventListener("click", function(){ setPersona("Diego"); });
     perI.addEventListener("click", function(){ setPersona("Iván"); });
+    if(perB) perB.addEventListener("click", function(){ setPersona("Ambos"); });
     var perGuardada = "Diego";
     try{ var pg = localStorage.getItem("rhPersonaSel"); if(pg){ perGuardada = pg; } }catch(e){}
     setPersona(perGuardada);
@@ -355,7 +361,7 @@
   }
 
   function nombre(c){ return c==="trabajo" ? "Trabajo" : "Análisis"; }
-  function colorPersona(p){ return p==="Iván" ? "var(--ivan)" : (p==="Diego" ? "var(--diego)" : "var(--text-3)"); }
+  function colorPersona(p){ return p==="Iván" ? "var(--ivan)" : (p==="Diego" ? "var(--diego)" : (p==="Ambos" ? "var(--ambos)" : "var(--text-3)")); }
   function fmtH(n){ return (Math.round(n*100)/100).toString(); }
   function fmtE(n){ return (Math.round(n*100)/100).toLocaleString("es-ES") + " €"; }
 
@@ -370,7 +376,7 @@
       if(r.cat==="trabajo") hT+=r.horas; else hA+=r.horas;
       if(r.persona==="Diego") hDiego+=r.horas;
       else if(r.persona==="Iván") hIvan+=r.horas;
-      else { hDiego+=r.horas/2; hIvan+=r.horas/2; } // registros antiguos: repartidos a partes iguales
+      else { hDiego+=r.horas/2; hIvan+=r.horas/2; } // "Ambos" o registros antiguos: a medias, sin duplicar el total
     });
     var total=hT+hA;
     document.getElementById("h-trabajo").textContent = fmtH(hT);
