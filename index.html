@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Horas">
+<meta name="theme-color" content="#0e0f13">
+<title>Registro de horas</title>
+<style>
+  :root{
+    --bg:#0e0f13;
+    --surface:#181a20;
+    --surface-2:#1f222b;
+    --line:#2a2e3a;
+    --text:#f2f3f5;
+    --text-2:#9aa0ad;
+    --text-3:#666c7a;
+    --accent:#5b8def;
+    --accent-soft:#1d2740;
+    --analisis:#37c2a0;
+    --analisis-soft:#11261f;
+    --danger:#e2554f;
+    --radius:14px;
+    --radius-sm:10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+    padding:max(16px,env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    max-width:520px;
+    margin:0 auto;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:20px;font-weight:600;margin:0 0 2px;letter-spacing:-0.01em;}
+  .sub{font-size:13px;color:var(--text-2);margin:0 0 18px;}
+  #estado{font-weight:500;}
+  #estado .pt{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;background:var(--text-3);}
+
+  .totales{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .total-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+  .total-card .label{font-size:12px;color:var(--text-2);margin-bottom:4px;}
+  .total-card .value{font-size:26px;font-weight:600;letter-spacing:-0.02em;}
+  .total-card .value.euros{color:var(--accent);}
+
+  .desglose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .mini{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 13px;}
+  .mini .label{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
+  .mini .value{font-size:16px;font-weight:600;}
+  .mini.t .dot,.mini.a .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .mini.t .dot{background:var(--accent);}
+  .mini.a .dot{background:var(--analisis);}
+
+  .form{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:24px;}
+  .cats{display:flex;gap:8px;margin-bottom:10px;}
+  .cat{flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--line);background:transparent;color:var(--text-2);font-size:15px;font-weight:500;cursor:pointer;transition:all .12s;font-family:inherit;}
+  .cat.on.t{background:var(--accent-soft);border-color:var(--accent);color:#a9c4ff;}
+  .cat.on.a{background:var(--analisis-soft);border-color:var(--analisis);color:#7fe3cd;}
+  input[type=text],input[type=number]{
+    width:100%;padding:12px 13px;border-radius:var(--radius-sm);border:1px solid var(--line);
+    background:var(--surface-2);color:var(--text);font-size:16px;font-family:inherit;margin-bottom:10px;
+  }
+  input::placeholder{color:var(--text-3);}
+  input:focus{outline:none;border-color:var(--accent);}
+  .row{display:flex;gap:8px;margin-bottom:0;}
+  .row input{margin-bottom:0;}
+  .add{padding:12px 18px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .add:active{transform:scale(.97);}
+  .add[disabled]{opacity:.5;}
+
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .sec-head h2{font-size:13px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.05em;margin:0;}
+  .vaciar{background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;font-family:inherit;padding:4px;}
+  .vaciar:active{color:var(--danger);}
+
+  .dia{margin-bottom:18px;}
+  .dia-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px;padding:0 2px;}
+  .dia-head .fecha{font-size:15px;font-weight:600;}
+  .dia-head .resumen{font-size:12px;color:var(--text-2);}
+  .item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:7px;}
+  .item .l1{font-size:15px;font-weight:500;}
+  .item .l1 .tag{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .item .l1 .tag.t{background:var(--accent);}
+  .item .l1 .tag.a{background:var(--analisis);}
+  .item .l2{font-size:12px;color:var(--text-2);margin-top:2px;}
+  .item .del{background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
+  .item .del:active{color:var(--danger);}
+  .vacio{font-size:14px;color:var(--text-3);text-align:center;padding:30px 0;}
+  .foot{font-size:11px;color:var(--text-3);text-align:center;margin-top:24px;}
+</style>
+</head>
+<body>
+
+<h1>Registro de horas</h1>
+<p class="sub">Tarifa: 75 &euro;/hora &middot; <span id="estado"><span class="pt"></span>Cargando&hellip;</span></p>
+
+<div class="totales">
+  <div class="total-card">
+    <div class="label">Horas totales</div>
+    <div class="value" id="total-horas">0</div>
+  </div>
+  <div class="total-card">
+    <div class="label">Factura</div>
+    <div class="value euros" id="total-euros">0&nbsp;&euro;</div>
+  </div>
+</div>
+
+<div class="desglose">
+  <div class="mini t"><div class="label"><span class="dot"></span>Trabajo</div><div class="value"><span id="h-trabajo">0</span> h</div></div>
+  <div class="mini a"><div class="label"><span class="dot"></span>An&aacute;lisis</div><div class="value"><span id="h-analisis">0</span> h</div></div>
+</div>
+
+<div class="form">
+  <div class="cats">
+    <button class="cat t on" id="cat-trabajo" type="button">Trabajo</button>
+    <button class="cat a" id="cat-analisis" type="button">An&aacute;lisis</button>
+  </div>
+  <input type="text" id="in-desc" placeholder="Descripci&oacute;n (opcional)" autocomplete="off">
+  <div class="row">
+    <input type="number" id="in-horas" inputmode="decimal" min="0" step="0.25" placeholder="Horas (ej. 2.5)">
+    <button class="add" id="btn-add" type="button">A&ntilde;adir</button>
+  </div>
+</div>
+
+<div class="sec-head">
+  <h2>Registros</h2>
+  <button class="vaciar" id="btn-vaciar" type="button">Vaciar todo</button>
+</div>
+<div id="dias"></div>
+
+<p class="foot">Los datos se guardan en la nube y se sincronizan entre tus dispositivos.</p>
+
+<script>
+(function(){
+  var TARIFA = 75;
+
+  // --- Almacen compartido en la nube (textdb.online, sin registro) ---
+  // Clave privada y aleatoria de este registro. No la compartas si no quieres
+  // que otros vean/editen tus horas.
+  var KEY = "rh_20d040559547fb23ab955eb70fcc";
+  var URL_READ  = "https://textdb.online/" + KEY;
+  var URL_WRITE = "https://textdb.online/update";
+  var CACHE = "registroHorasV1"; // copia local de respaldo
+
+  var categoria = "trabajo";
+  var registros = [];
+
+  function semillaInicial(){
+    return [
+      mk("analisis", 1,    "",                          2026,4,18,18,30),
+      mk("trabajo",  1.5,  "Instalar SQL y explicación", 2026,4,18,20,0),
+      mk("trabajo",  2,    "Empezar app",               2026,4,18,23,0),
+      mk("trabajo",  3,    "",                          2026,4,19,12,0),
+      mk("analisis", 1,    "",                          2026,4,20,18,35),
+      mk("trabajo",  1,    "Estructura backend (Iván)", 2026,4,21,12,0),
+      mk("trabajo",  0.88, "GitHub",                    2026,4,23,11,37)
+    ];
+  }
+  function mk(cat,horas,desc,y,mes0,dia,hh,mm){
+    return { id: "s"+y+mes0+dia+hh+mm+Math.random().toString(36).slice(2,6),
+             cat:cat, horas:horas, desc:desc, ts:new Date(y,mes0,dia,hh,mm).getTime() };
+  }
+
+  // --- Estado de sincronizacion (texto bajo el titulo) ---
+  var elEstado = document.getElementById("estado");
+  function setEstado(s){
+    if(!elEstado) return;
+    var color = "var(--text-3)", txt = "";
+    if(s==="ok"){ color="var(--analisis)"; txt="Sincronizado"; }
+    else if(s==="cargando"){ color="var(--text-2)"; txt="Cargando…"; }
+    else if(s==="guardando"){ color="var(--text-2)"; txt="Guardando…"; }
+    else if(s==="offline"){ color="var(--danger)"; txt="Sin conexión (guardado local)"; }
+    elEstado.innerHTML = '<span class="pt" style="background:'+color+'"></span>'+txt;
+    elEstado.style.color = color;
+  }
+
+  // --- Copia local de respaldo ---
+  function leerCache(){
+    try{ var raw = localStorage.getItem(CACHE); return raw ? JSON.parse(raw) : null; }
+    catch(e){ return null; }
+  }
+  function escribirCache(){
+    try{ localStorage.setItem(CACHE, JSON.stringify(registros)); }catch(e){}
+  }
+
+  // --- Nube: leer ---
+  function cargarNube(){
+    setEstado("cargando");
+    return fetch(URL_READ + "?t=" + Date.now(), { cache:"no-store" })
+      .then(function(r){ return r.text(); })
+      .then(function(txt){
+        var data = null;
+        try{ data = JSON.parse(txt); }catch(e){}
+        if(!data || typeof data !== "object"){ throw new Error("respuesta no valida"); }
+        if(data.registros === null || data.registros === undefined){
+          // Primer arranque: sembrar con los registros iniciales y subirlos.
+          registros = semillaInicial();
+          escribirCache();
+          return guardarNube();
+        }
+        registros = data.registros || [];
+        escribirCache();
+        setEstado("ok");
+      })
+      .catch(function(){
+        // Sin red: usar la copia local si existe.
+        var c = leerCache();
+        if(c){ registros = c; }
+        setEstado("offline");
+      });
+  }
+
+  // --- Nube: guardar ---
+  function guardarNube(){
+    setEstado("guardando");
+    escribirCache();
+    var cuerpo = new URLSearchParams();
+    cuerpo.set("key", KEY);
+    cuerpo.set("value", JSON.stringify({ v:1, registros:registros }));
+    return fetch(URL_WRITE, { method:"POST", body:cuerpo })
+      .then(function(r){ if(!r.ok) throw new Error("error al guardar"); setEstado("ok"); })
+      .catch(function(){ setEstado("offline"); });
+  }
+
+  var catT = document.getElementById("cat-trabajo");
+  var catA = document.getElementById("cat-analisis");
+  var inDesc = document.getElementById("in-desc");
+  var inHoras = document.getElementById("in-horas");
+  var btnAdd = document.getElementById("btn-add");
+  var btnVaciar = document.getElementById("btn-vaciar");
+  var diasEl = document.getElementById("dias");
+
+  catT.addEventListener("click", function(){ categoria="trabajo"; catT.classList.add("on"); catA.classList.remove("on"); });
+  catA.addEventListener("click", function(){ categoria="analisis"; catA.classList.add("on"); catT.classList.remove("on"); });
+
+  function nombre(c){ return c==="trabajo" ? "Trabajo" : "Análisis"; }
+  function fmtH(n){ return (Math.round(n*100)/100).toString(); }
+  function fmtE(n){ return (Math.round(n*100)/100).toLocaleString("es-ES") + " €"; }
+
+  var MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  function claveDia(d){ return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); }
+  function etiquetaDia(d){ return d.getDate()+" de "+MESES[d.getMonth()]; }
+  function horaTexto(d){ var h=d.getHours(),m=d.getMinutes(); return (h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
+
+  function render(){
+    var hT=0,hA=0;
+    registros.forEach(function(r){ if(r.cat==="trabajo") hT+=r.horas; else hA+=r.horas; });
+    var total=hT+hA;
+    document.getElementById("h-trabajo").textContent = fmtH(hT);
+    document.getElementById("h-analisis").textContent = fmtH(hA);
+    document.getElementById("total-horas").textContent = fmtH(total);
+    document.getElementById("total-euros").innerHTML = fmtE(total*TARIFA).replace(" €","&nbsp;€");
+
+    diasEl.innerHTML="";
+    if(registros.length===0){
+      var v=document.createElement("div"); v.className="vacio"; v.textContent="Aún no has añadido horas.";
+      diasEl.appendChild(v); return;
+    }
+
+    var grupos={}, orden=[];
+    registros.forEach(function(r){
+      var d=new Date(r.ts), k=claveDia(d);
+      if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
+      grupos[k].push(r);
+    });
+    orden.sort(function(a,b){ return grupos[b][0].ts - grupos[a][0].ts; });
+
+    orden.forEach(function(k){
+      var items=grupos[k].slice().sort(function(a,b){ return b.ts - a.ts; });
+      var horasDia=0; items.forEach(function(r){ horasDia+=r.horas; });
+      var d0=new Date(items[0].ts);
+
+      var bloque=document.createElement("div"); bloque.className="dia";
+      var head=document.createElement("div"); head.className="dia-head";
+      head.innerHTML='<span class="fecha">'+etiquetaDia(d0)+'</span><span class="resumen">'+fmtH(horasDia)+' h · '+fmtE(horasDia*TARIFA)+'</span>';
+      bloque.appendChild(head);
+
+      items.forEach(function(r){
+        var d=new Date(r.ts);
+        var item=document.createElement("div"); item.className="item";
+        var left=document.createElement("div");
+        var tagCls = r.cat==="trabajo" ? "t" : "a";
+        left.innerHTML='<div class="l1"><span class="tag '+tagCls+'"></span>'+nombre(r.cat)+' · '+fmtH(r.horas)+' h</div>'+
+                       '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>';
+        var del=document.createElement("button"); del.className="del"; del.type="button"; del.setAttribute("aria-label","Eliminar"); del.innerHTML="&times;";
+        del.addEventListener("click", function(){
+          registros = registros.filter(function(x){ return x.id !== r.id; });
+          guardarNube(); render();
+        });
+        item.appendChild(left); item.appendChild(del);
+        bloque.appendChild(item);
+      });
+      diasEl.appendChild(bloque);
+    });
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function add(){
+    var v=parseFloat((inHoras.value||"").replace(",","."));
+    if(isNaN(v)||v<=0){ inHoras.focus(); return; }
+    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), cat:categoria, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
+    inHoras.value=""; inDesc.value=""; inHoras.blur();
+    guardarNube(); render();
+  }
+  btnAdd.addEventListener("click", add);
+  inHoras.addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  inDesc.addEventListener("keydown", function(e){ if(e.key==="Enter") inHoras.focus(); });
+
+  btnVaciar.addEventListener("click", function(){
+    if(confirm("¿Borrar todos los registros? Esto no se puede deshacer.")){
+      registros=[]; guardarNube(); render();
+    }
+  });
+
+  // Volver a sincronizar al reabrir/enfocar la pestana (para ver cambios hechos en otro dispositivo).
+  function refrescar(){ if(document.visibilityState==="visible"){ cargarNube().then(render); } }
+  document.addEventListener("visibilitychange", refrescar);
+  window.addEventListener("focus", refrescar);
+
+  // Arranque: pintar al instante con la copia local y luego traer la nube.
+  var inicial = leerCache();
+  if(inicial){ registros = inicial; }
+  render();
+  cargarNube().then(render);
+})();
+</script>
+</body>
+</html>
