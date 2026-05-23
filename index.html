@@ -83,12 +83,13 @@
   .cat.on.t{background:var(--accent-soft);border-color:var(--accent);color:#a9c4ff;}
   .cat.on.a{background:var(--analisis-soft);border-color:var(--analisis);color:#7fe3cd;}
   .cat.on.r{background:#2c1a24;border-color:var(--reunion);color:#eab4ce;}
-  input[type=text],input[type=number]{
+  input[type=text],input[type=number],input[type=time]{
     width:100%;padding:12px 13px;border-radius:var(--radius-sm);border:1px solid var(--line);
     background:var(--surface-2);color:var(--text);font-size:16px;font-family:inherit;margin-bottom:10px;
   }
   input::placeholder{color:var(--text-3);}
   input:focus{outline:none;border-color:var(--accent);}
+  input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;}
   .sel{
     width:100%;padding:12px 36px 12px 13px;border-radius:var(--radius-sm);
     border:1px solid var(--line);background:var(--surface-2);color:var(--text);
@@ -179,6 +180,12 @@
   </div>
   <select id="in-proyecto" class="sel" aria-label="Proyecto"></select>
   <input type="text" id="in-desc" placeholder="Descripci&oacute;n (opcional)" autocomplete="off">
+  <div class="flabel">Inicio y fin (opcional, calcula las horas)</div>
+  <div class="row">
+    <input type="time" id="in-inicio" class="time" aria-label="Hora de inicio">
+    <input type="time" id="in-fin" class="time" aria-label="Hora de fin">
+  </div>
+  <div class="flabel mt">Horas</div>
   <div class="row">
     <input type="number" id="in-horas" inputmode="decimal" min="0" step="0.25" placeholder="Horas (ej. 2.5)">
     <button class="add" id="btn-add" type="button">A&ntilde;adir</button>
@@ -310,6 +317,8 @@
   var inProyecto = document.getElementById("in-proyecto");
   var inDesc = document.getElementById("in-desc");
   var inHoras = document.getElementById("in-horas");
+  var inInicio = document.getElementById("in-inicio");
+  var inFin = document.getElementById("in-fin");
   var btnAdd = document.getElementById("btn-add");
   var btnVaciar = document.getElementById("btn-vaciar");
   var diasEl = document.getElementById("dias");
@@ -457,9 +466,27 @@
     var v=parseFloat((inHoras.value||"").replace(",","."));
     if(isNaN(v)||v<=0){ inHoras.focus(); return; }
     registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), persona:personaSel, cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
-    inHoras.value=""; inDesc.value=""; inHoras.blur();
+    inHoras.value=""; inDesc.value=""; inInicio.value=""; inFin.value=""; inHoras.blur();
     guardarNube(); render();
   }
+  // Calcular las horas a partir de la hora de inicio y de fin (formato HH:MM).
+  function calcDesdeTiempos(){
+    var a = inInicio.value, b = inFin.value;
+    if(!a || !b) return;
+    var pa = a.split(":"), pb = b.split(":");
+    var mi = parseInt(pa[0],10)*60 + parseInt(pa[1],10);
+    var mf = parseInt(pb[0],10)*60 + parseInt(pb[1],10);
+    if(isNaN(mi) || isNaN(mf)) return;
+    var diff = mf - mi;
+    if(diff < 0) diff += 24*60; // cruza medianoche (p. ej. 23:30 -> 00:30)
+    var horas = Math.round((diff/60)*100)/100;
+    inHoras.value = horas > 0 ? horas : "";
+  }
+  inInicio.addEventListener("input", calcDesdeTiempos);
+  inFin.addEventListener("input", calcDesdeTiempos);
+  inInicio.addEventListener("change", calcDesdeTiempos);
+  inFin.addEventListener("change", calcDesdeTiempos);
+
   btnAdd.addEventListener("click", add);
   inHoras.addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
   inDesc.addEventListener("keydown", function(e){ if(e.key==="Enter") inHoras.focus(); });
