@@ -467,6 +467,7 @@
     if(isNaN(v)||v<=0){ inHoras.focus(); return; }
     registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), persona:personaSel, cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
     inHoras.value=""; inDesc.value=""; inInicio.value=""; inFin.value=""; inHoras.blur();
+    try{ localStorage.removeItem("rhInicioDraft"); localStorage.removeItem("rhFinDraft"); }catch(e){}
     guardarNube(); render();
   }
   // Calcular las horas a partir de la hora de inicio y de fin (formato HH:MM).
@@ -482,10 +483,20 @@
     var horas = Math.round((diff/60)*100)/100;
     inHoras.value = horas > 0 ? horas : "";
   }
-  inInicio.addEventListener("input", calcDesdeTiempos);
-  inFin.addEventListener("input", calcDesdeTiempos);
-  inInicio.addEventListener("change", calcDesdeTiempos);
-  inFin.addEventListener("change", calcDesdeTiempos);
+  function guardarBorradorTiempos(){
+    try{ localStorage.setItem("rhInicioDraft", inInicio.value||""); localStorage.setItem("rhFinDraft", inFin.value||""); }catch(e){}
+  }
+  function onTiempoCambio(){ calcDesdeTiempos(); guardarBorradorTiempos(); }
+  inInicio.addEventListener("input", onTiempoCambio);
+  inFin.addEventListener("input", onTiempoCambio);
+  inInicio.addEventListener("change", onTiempoCambio);
+  inFin.addEventListener("change", onTiempoCambio);
+  // Mantener la hora de inicio/fin aunque cierres y reabras la pagina (hasta que anadas el registro).
+  try{
+    var diniDraft = localStorage.getItem("rhInicioDraft"); if(diniDraft){ inInicio.value = diniDraft; }
+    var dfinDraft = localStorage.getItem("rhFinDraft"); if(dfinDraft){ inFin.value = dfinDraft; }
+  }catch(e){}
+  calcDesdeTiempos();
 
   btnAdd.addEventListener("click", add);
   inHoras.addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
