@@ -67,6 +67,15 @@
   }
   input::placeholder{color:var(--text-3);}
   input:focus{outline:none;border-color:var(--accent);}
+  .sel{
+    width:100%;padding:12px 36px 12px 13px;border-radius:var(--radius-sm);
+    border:1px solid var(--line);background:var(--surface-2);color:var(--text);
+    font-size:16px;font-family:inherit;margin-bottom:10px;
+    -webkit-appearance:none;-moz-appearance:none;appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="%239aa0ad" stroke-width="2"><path d="M1 1l5 5 5-5"/></svg>');
+    background-repeat:no-repeat;background-position:right 13px center;
+  }
+  .sel:focus{outline:none;border-color:var(--accent);}
   .row{display:flex;gap:8px;margin-bottom:0;}
   .row input{margin-bottom:0;}
   .add{padding:12px 18px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
@@ -88,6 +97,7 @@
   .item .l1 .tag.t{background:var(--accent);}
   .item .l1 .tag.a{background:var(--analisis);}
   .item .l2{font-size:12px;color:var(--text-2);margin-top:2px;}
+  .item .proj{display:inline-block;margin-top:5px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
   .item .del{background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
   .item .del:active{color:var(--danger);}
   .vacio{font-size:14px;color:var(--text-3);text-align:center;padding:30px 0;}
@@ -120,6 +130,7 @@
     <button class="cat t on" id="cat-trabajo" type="button">Trabajo</button>
     <button class="cat a" id="cat-analisis" type="button">An&aacute;lisis</button>
   </div>
+  <select id="in-proyecto" class="sel" aria-label="Proyecto"></select>
   <input type="text" id="in-desc" placeholder="Descripci&oacute;n (opcional)" autocomplete="off">
   <div class="row">
     <input type="number" id="in-horas" inputmode="decimal" min="0" step="0.25" placeholder="Horas (ej. 2.5)">
@@ -147,8 +158,11 @@
   var URL_WRITE = "https://textdb.online/update";
   var CACHE = "registroHorasV1"; // copia local de respaldo
 
+  var PROYECTO_DEFECTO = "Grabación de pedidos";
   var categoria = "trabajo";
   var registros = [];
+  var proyectos = [PROYECTO_DEFECTO];
+  var proyectoSel = PROYECTO_DEFECTO;
 
   function semillaInicial(){
     return [
@@ -181,11 +195,16 @@
 
   // --- Copia local de respaldo ---
   function leerCache(){
-    try{ var raw = localStorage.getItem(CACHE); return raw ? JSON.parse(raw) : null; }
-    catch(e){ return null; }
+    try{
+      var raw = localStorage.getItem(CACHE);
+      if(!raw) return null;
+      var d = JSON.parse(raw);
+      if(Array.isArray(d)) return { registros:d, proyectos:null };
+      return { registros:d.registros||[], proyectos:d.proyectos||null };
+    }catch(e){ return null; }
   }
   function escribirCache(){
-    try{ localStorage.setItem(CACHE, JSON.stringify(registros)); }catch(e){}
+    try{ localStorage.setItem(CACHE, JSON.stringify({ registros:registros, proyectos:proyectos })); }catch(e){}
   }
 
   // --- Nube: leer ---
@@ -200,17 +219,27 @@
         if(data.registros === null || data.registros === undefined){
           // Primer arranque: sembrar con los registros iniciales y subirlos.
           registros = semillaInicial();
+          proyectos = [PROYECTO_DEFECTO];
+          registros.forEach(function(r){ r.proyecto = proyectos[0]; });
+          aplicarProyectos();
           escribirCache();
           return guardarNube();
         }
         registros = data.registros || [];
+        proyectos = (data.proyectos && data.proyectos.length) ? data.proyectos : [PROYECTO_DEFECTO];
+        // Migracion: registros antiguos sin proyecto -> proyecto por defecto.
+        var faltaba = false;
+        registros.forEach(function(r){ if(!r.proyecto){ r.proyecto = proyectos[0]; faltaba = true; } });
+        aplicarProyectos();
         escribirCache();
         setEstado("ok");
+        if(faltaba){ guardarNube(); }
       })
       .catch(function(){
         // Sin red: usar la copia local si existe.
         var c = leerCache();
-        if(c){ registros = c; }
+        if(c){ registros = c.registros || []; if(c.proyectos && c.proyectos.length){ proyectos = c.proyectos; } }
+        aplicarProyectos();
         setEstado("offline");
       });
   }
@@ -221,7 +250,7 @@
     escribirCache();
     var cuerpo = new URLSearchParams();
     cuerpo.set("key", KEY);
-    cuerpo.set("value", JSON.stringify({ v:1, registros:registros }));
+    cuerpo.set("value", JSON.stringify({ v:1, registros:registros, proyectos:proyectos }));
     return fetch(URL_WRITE, { method:"POST", body:cuerpo })
       .then(function(r){ if(!r.ok) throw new Error("error al guardar"); setEstado("ok"); })
       .catch(function(){ setEstado("offline"); });
@@ -229,6 +258,7 @@
 
   var catT = document.getElementById("cat-trabajo");
   var catA = document.getElementById("cat-analisis");
+  var inProyecto = document.getElementById("in-proyecto");
   var inDesc = document.getElementById("in-desc");
   var inHoras = document.getElementById("in-horas");
   var btnAdd = document.getElementById("btn-add");
@@ -237,6 +267,36 @@
 
   catT.addEventListener("click", function(){ categoria="trabajo"; catT.classList.add("on"); catA.classList.remove("on"); });
   catA.addEventListener("click", function(){ categoria="analisis"; catA.classList.add("on"); catT.classList.remove("on"); });
+
+  // --- Selector de proyecto ---
+  try{ var guardadoSel = localStorage.getItem("rhProyectoSel"); if(guardadoSel){ proyectoSel = guardadoSel; } }catch(e){}
+
+  function aplicarProyectos(){
+    if(!inProyecto) return;
+    if(proyectos.indexOf(proyectoSel) < 0){ proyectoSel = proyectos[0]; }
+    inProyecto.innerHTML = "";
+    proyectos.forEach(function(p){
+      var o = document.createElement("option"); o.value = p; o.textContent = p; inProyecto.appendChild(o);
+    });
+    var add = document.createElement("option"); add.value = "__add__"; add.textContent = "+ Añadir proyecto…"; inProyecto.appendChild(add);
+    inProyecto.value = proyectoSel;
+  }
+
+  if(inProyecto){
+    inProyecto.addEventListener("change", function(){
+      if(inProyecto.value === "__add__"){
+        var nombre = (prompt("Nombre del nuevo proyecto:") || "").trim();
+        if(nombre){
+          if(proyectos.indexOf(nombre) < 0){ proyectos.push(nombre); guardarNube(); }
+          proyectoSel = nombre;
+        }
+        aplicarProyectos();
+      } else {
+        proyectoSel = inProyecto.value;
+      }
+      try{ localStorage.setItem("rhProyectoSel", proyectoSel); }catch(e){}
+    });
+  }
 
   function nombre(c){ return c==="trabajo" ? "Trabajo" : "Análisis"; }
   function fmtH(n){ return (Math.round(n*100)/100).toString(); }
@@ -286,7 +346,8 @@
         var left=document.createElement("div");
         var tagCls = r.cat==="trabajo" ? "t" : "a";
         left.innerHTML='<div class="l1"><span class="tag '+tagCls+'"></span>'+nombre(r.cat)+' · '+fmtH(r.horas)+' h</div>'+
-                       '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>';
+                       '<div class="l2">'+horaTexto(d)+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
+                       (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'');
         var del=document.createElement("button"); del.className="del"; del.type="button"; del.setAttribute("aria-label","Eliminar"); del.innerHTML="&times;";
         del.addEventListener("click", function(){
           registros = registros.filter(function(x){ return x.id !== r.id; });
@@ -304,7 +365,7 @@
   function add(){
     var v=parseFloat((inHoras.value||"").replace(",","."));
     if(isNaN(v)||v<=0){ inHoras.focus(); return; }
-    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), cat:categoria, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
+    registros.push({ id:"r"+Date.now()+Math.random().toString(36).slice(2,5), cat:categoria, proyecto:proyectoSel, horas:v, desc:(inDesc.value||"").trim(), ts:Date.now() });
     inHoras.value=""; inDesc.value=""; inHoras.blur();
     guardarNube(); render();
   }
@@ -325,7 +386,11 @@
 
   // Arranque: pintar al instante con la copia local y luego traer la nube.
   var inicial = leerCache();
-  if(inicial){ registros = inicial; }
+  if(inicial){
+    registros = inicial.registros || [];
+    if(inicial.proyectos && inicial.proyectos.length){ proyectos = inicial.proyectos; }
+  }
+  aplicarProyectos();
   render();
   cargarNube().then(render);
 })();
