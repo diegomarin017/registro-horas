@@ -105,6 +105,20 @@
   .add:active{transform:scale(.97);}
   .add[disabled]{opacity:.5;}
 
+  .tareas-box{margin-bottom:20px;}
+  .tareas-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;color:var(--text);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;}
+  .tareas-toggle .tareas-count{font-size:12px;color:var(--text-2);font-weight:500;}
+  .tareas-toggle.abierto{border-bottom-left-radius:0;border-bottom-right-radius:0;}
+  .tareas-panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:12px 14px;}
+  .tareas-list{list-style:none;margin:10px 0 0;padding:0;}
+  .tarea{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .tarea:first-child{border-top:none;}
+  .tarea .chk{width:18px;height:18px;flex-shrink:0;cursor:pointer;accent-color:var(--accent);}
+  .tarea .txt{flex:1;font-size:14px;color:var(--text);word-break:break-word;}
+  .tarea.hecha .txt{color:var(--text-3);text-decoration:line-through;}
+  .tarea .del{background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0;}
+  .tarea-vacio{font-size:13px;color:var(--text-3);padding:6px 0;}
+
   .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
   .sec-head h2{font-size:13px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.05em;margin:0;}
   .vaciar{background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;font-family:inherit;padding:4px;}
@@ -163,6 +177,20 @@
   <div class="mini t"><div class="label"><span class="dot"></span>Trabajo</div><div class="value"><span id="h-trabajo">0</span> h</div></div>
   <div class="mini a"><div class="label"><span class="dot"></span>An&aacute;lisis</div><div class="value"><span id="h-analisis">0</span> h</div></div>
   <div class="mini r"><div class="label"><span class="dot"></span>Reuni&oacute;n</div><div class="value"><span id="h-reunion">0</span> h</div></div>
+</div>
+
+<div class="tareas-box">
+  <button class="tareas-toggle" id="btn-tareas" type="button">
+    <span>Tareas</span>
+    <span class="tareas-count" id="tareas-count"></span>
+  </button>
+  <div class="tareas-panel" id="tareas-panel" hidden>
+    <div class="row">
+      <input type="text" id="in-tarea" placeholder="Nueva tarea por hacer&hellip;" autocomplete="off">
+      <button class="add" id="btn-add-tarea" type="button">A&ntilde;adir</button>
+    </div>
+    <ul class="tareas-list" id="tareas-list"></ul>
+  </div>
 </div>
 
 <div class="form">
@@ -510,6 +538,57 @@
       registros=[]; guardarNube(); render();
     }
   });
+
+  // --- Tareas pendientes (notas locales, privadas de cada dispositivo) ---
+  var btnTareas = document.getElementById("btn-tareas");
+  var tareasPanel = document.getElementById("tareas-panel");
+  var inTarea = document.getElementById("in-tarea");
+  var btnAddTarea = document.getElementById("btn-add-tarea");
+  var tareasList = document.getElementById("tareas-list");
+  var tareasCount = document.getElementById("tareas-count");
+  var tareas = [];
+
+  function cargarTareas(){
+    try{ var raw = localStorage.getItem("rhTareas"); tareas = raw ? (JSON.parse(raw)||[]) : []; }
+    catch(e){ tareas = []; }
+  }
+  function guardarTareas(){ try{ localStorage.setItem("rhTareas", JSON.stringify(tareas)); }catch(e){} }
+
+  function renderTareas(){
+    var pend = tareas.filter(function(t){ return !t.hecha; }).length;
+    if(!tareas.length) tareasCount.textContent = "";
+    else tareasCount.textContent = pend>0 ? (pend+" por hacer") : "todo hecho";
+    tareasList.innerHTML = "";
+    if(!tareas.length){
+      var vac = document.createElement("li"); vac.className = "tarea-vacio"; vac.textContent = "Sin tareas. Añade la primera arriba.";
+      tareasList.appendChild(vac); return;
+    }
+    tareas.forEach(function(t){
+      var li = document.createElement("li"); li.className = "tarea" + (t.hecha ? " hecha" : "");
+      var chk = document.createElement("input"); chk.type = "checkbox"; chk.className = "chk"; chk.checked = !!t.hecha;
+      chk.addEventListener("change", function(){ t.hecha = chk.checked; guardarTareas(); renderTareas(); });
+      var txt = document.createElement("span"); txt.className = "txt"; txt.textContent = t.texto;
+      var del = document.createElement("button"); del.type = "button"; del.className = "del"; del.setAttribute("aria-label","Eliminar"); del.innerHTML = "&times;";
+      del.addEventListener("click", function(){ tareas = tareas.filter(function(x){ return x.id !== t.id; }); guardarTareas(); renderTareas(); });
+      li.appendChild(chk); li.appendChild(txt); li.appendChild(del);
+      tareasList.appendChild(li);
+    });
+  }
+  function addTarea(){
+    var txt = (inTarea.value || "").trim();
+    if(!txt) return;
+    tareas.push({ id:"t"+Date.now()+Math.random().toString(36).slice(2,5), texto:txt, hecha:false });
+    inTarea.value = ""; guardarTareas(); renderTareas();
+  }
+  if(btnTareas){
+    btnTareas.addEventListener("click", function(){
+      if(tareasPanel.hasAttribute("hidden")){ tareasPanel.removeAttribute("hidden"); btnTareas.classList.add("abierto"); }
+      else { tareasPanel.setAttribute("hidden",""); btnTareas.classList.remove("abierto"); }
+    });
+    btnAddTarea.addEventListener("click", addTarea);
+    inTarea.addEventListener("keydown", function(e){ if(e.key==="Enter") addTarea(); });
+    cargarTareas(); renderTareas();
+  }
 
   // Volver a sincronizar al reabrir/enfocar la pestana (para ver cambios hechos en otro dispositivo).
   function refrescar(){ if(document.visibilityState==="visible"){ cargarNube().then(render); } }
