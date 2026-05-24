@@ -138,10 +138,18 @@
   .item .proj{display:inline-block;margin-top:5px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
   .item .who{display:inline-block;margin-top:5px;margin-left:6px;font-size:11px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
   .item .who .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;}
-  .item .del{background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
-  .item .del:active{color:var(--danger);}
+  .item .edit{background:none;border:1px solid var(--line);color:var(--accent);font-size:12px;font-weight:500;cursor:pointer;padding:6px 12px;border-radius:999px;line-height:1;flex-shrink:0;font-family:inherit;}
+  .item .edit:active{background:var(--surface-2);}
   .vacio{font-size:14px;color:var(--text-3);text-align:center;padding:30px 0;}
   .foot{font-size:11px;color:var(--text-3);text-align:center;margin-top:24px;}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal[hidden]{display:none;}
+  .modal-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;width:100%;max-width:460px;max-height:90vh;overflow:auto;}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:12px;}
+  .modal-acciones{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px;}
+  .modal-acciones .der{display:flex;gap:8px;}
+  .btn-sec{background:none;border:1px solid var(--line);color:var(--text-2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .btn-sec.peligro{color:var(--danger);border-color:#5a2a2a;}
 </style>
 </head>
 <body>
@@ -222,11 +230,39 @@
 
 <div class="sec-head">
   <h2>Registros</h2>
-  <button class="vaciar" id="btn-vaciar" type="button">Vaciar todo</button>
 </div>
 <div id="dias"></div>
 
 <p class="foot">Los datos se guardan en la nube y se sincronizan entre tus dispositivos.</p>
+
+<div class="modal" id="modal-editar" hidden>
+  <div class="modal-card">
+    <div class="modal-title">Editar registro</div>
+    <div class="flabel">Qui&eacute;n</div>
+    <div class="cats">
+      <button class="cat pd" id="ed-per-diego" type="button">Diego</button>
+      <button class="cat pi" id="ed-per-ivan" type="button">Iv&aacute;n</button>
+      <button class="cat pb" id="ed-per-ambos" type="button">Ambos</button>
+    </div>
+    <div class="flabel mt">Tipo</div>
+    <div class="cats">
+      <button class="cat t" id="ed-cat-trabajo" type="button">Trabajo</button>
+      <button class="cat a" id="ed-cat-analisis" type="button">An&aacute;lisis</button>
+      <button class="cat r" id="ed-cat-reunion" type="button">Reuni&oacute;n</button>
+    </div>
+    <select id="ed-proyecto" class="sel" aria-label="Proyecto"></select>
+    <input type="text" id="ed-desc" placeholder="Descripci&oacute;n (opcional)" autocomplete="off">
+    <div class="flabel mt">Horas</div>
+    <input type="number" id="ed-horas" inputmode="decimal" min="0" step="0.25" placeholder="Horas (ej. 2.5)">
+    <div class="modal-acciones">
+      <button class="btn-sec peligro" id="ed-eliminar" type="button">Eliminar</button>
+      <div class="der">
+        <button class="btn-sec" id="ed-cancelar" type="button">Cancelar</button>
+        <button class="add" id="ed-guardar" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -348,7 +384,6 @@
   var inInicio = document.getElementById("in-inicio");
   var inFin = document.getElementById("in-fin");
   var btnAdd = document.getElementById("btn-add");
-  var btnVaciar = document.getElementById("btn-vaciar");
   var diasEl = document.getElementById("dias");
 
   function setCategoria(c){
@@ -477,12 +512,9 @@
                        '<div class="l2">'+tiempoTxt+(r.desc?(' · '+escapeHtml(r.desc)):'')+'</div>'+
                        (r.proyecto?('<span class="proj">'+escapeHtml(r.proyecto)+'</span>'):'')+
                        '<span class="who"><span class="dot" style="background:'+colorPersona(r.persona)+'"></span>'+(r.persona?escapeHtml(r.persona):'Repartido')+'</span>';
-        var del=document.createElement("button"); del.className="del"; del.type="button"; del.setAttribute("aria-label","Eliminar"); del.innerHTML="&times;";
-        del.addEventListener("click", function(){
-          registros = registros.filter(function(x){ return x.id !== r.id; });
-          guardarNube(); render();
-        });
-        item.appendChild(left); item.appendChild(del);
+        var btnEd=document.createElement("button"); btnEd.className="edit"; btnEd.type="button"; btnEd.textContent="Editar";
+        btnEd.addEventListener("click", function(){ openEditar(r); });
+        item.appendChild(left); item.appendChild(btnEd);
         bloque.appendChild(item);
       });
       diasEl.appendChild(bloque);
@@ -532,12 +564,6 @@
   btnAdd.addEventListener("click", add);
   inHoras.addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
   inDesc.addEventListener("keydown", function(e){ if(e.key==="Enter") inHoras.focus(); });
-
-  btnVaciar.addEventListener("click", function(){
-    if(confirm("¿Borrar todos los registros? Esto no se puede deshacer.")){
-      registros=[]; guardarNube(); render();
-    }
-  });
 
   // --- Tareas pendientes (notas locales, privadas de cada dispositivo) ---
   var btnTareas = document.getElementById("btn-tareas");
@@ -589,6 +615,79 @@
     inTarea.addEventListener("keydown", function(e){ if(e.key==="Enter") addTarea(); });
     cargarTareas(); renderTareas();
   }
+
+  // --- Editar un registro (persona, tipo, proyecto, descripcion, horas) ---
+  var modalEd = document.getElementById("modal-editar");
+  var edPerD = document.getElementById("ed-per-diego");
+  var edPerI = document.getElementById("ed-per-ivan");
+  var edPerB = document.getElementById("ed-per-ambos");
+  var edCatT = document.getElementById("ed-cat-trabajo");
+  var edCatA = document.getElementById("ed-cat-analisis");
+  var edCatR = document.getElementById("ed-cat-reunion");
+  var edProy = document.getElementById("ed-proyecto");
+  var edDesc = document.getElementById("ed-desc");
+  var edHoras = document.getElementById("ed-horas");
+  var editId = null, edPersona = "Ambos", edCat = "trabajo";
+
+  function edSetPersona(p){
+    edPersona = (p==="Diego"||p==="Iván"||p==="Ambos") ? p : "Ambos";
+    edPerD.classList.toggle("on", edPersona==="Diego");
+    edPerI.classList.toggle("on", edPersona==="Iván");
+    edPerB.classList.toggle("on", edPersona==="Ambos");
+  }
+  function edSetCat(c){
+    edCat = (c==="analisis"||c==="reunion") ? c : "trabajo";
+    edCatT.classList.toggle("on", edCat==="trabajo");
+    edCatA.classList.toggle("on", edCat==="analisis");
+    edCatR.classList.toggle("on", edCat==="reunion");
+  }
+  function openEditar(r){
+    editId = r.id;
+    edSetPersona(r.persona);
+    edSetCat(r.cat);
+    edProy.innerHTML = "";
+    var lista = proyectos.slice();
+    if(r.proyecto && lista.indexOf(r.proyecto) < 0){ lista.unshift(r.proyecto); }
+    lista.forEach(function(p){ var o=document.createElement("option"); o.value=p; o.textContent=p; edProy.appendChild(o); });
+    edProy.value = r.proyecto || lista[0] || "";
+    edDesc.value = r.desc || "";
+    edHoras.value = r.horas;
+    modalEd.removeAttribute("hidden");
+  }
+  function cerrarEditar(){ modalEd.setAttribute("hidden",""); editId = null; }
+  function guardarEditar(){
+    if(editId === null) return;
+    var v = parseFloat((edHoras.value||"").replace(",","."));
+    if(isNaN(v) || v<=0){ edHoras.focus(); return; }
+    for(var i=0;i<registros.length;i++){
+      if(registros[i].id === editId){
+        registros[i].persona = edPersona;
+        registros[i].cat = edCat;
+        registros[i].proyecto = edProy.value;
+        registros[i].desc = (edDesc.value||"").trim();
+        registros[i].horas = v;
+        break;
+      }
+    }
+    guardarNube(); render(); cerrarEditar();
+  }
+  function eliminarEditar(){
+    if(editId === null) return;
+    if(confirm("¿Eliminar este registro? Esto no se puede deshacer.")){
+      registros = registros.filter(function(x){ return x.id !== editId; });
+      guardarNube(); render(); cerrarEditar();
+    }
+  }
+  edPerD.addEventListener("click", function(){ edSetPersona("Diego"); });
+  edPerI.addEventListener("click", function(){ edSetPersona("Iván"); });
+  edPerB.addEventListener("click", function(){ edSetPersona("Ambos"); });
+  edCatT.addEventListener("click", function(){ edSetCat("trabajo"); });
+  edCatA.addEventListener("click", function(){ edSetCat("analisis"); });
+  edCatR.addEventListener("click", function(){ edSetCat("reunion"); });
+  document.getElementById("ed-guardar").addEventListener("click", guardarEditar);
+  document.getElementById("ed-cancelar").addEventListener("click", cerrarEditar);
+  document.getElementById("ed-eliminar").addEventListener("click", eliminarEditar);
+  modalEd.addEventListener("click", function(e){ if(e.target === modalEd) cerrarEditar(); });
 
   // Volver a sincronizar al reabrir/enfocar la pestana (para ver cambios hechos en otro dispositivo).
   function refrescar(){ if(document.visibilityState==="visible"){ cargarNube().then(render); } }
