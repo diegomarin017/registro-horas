@@ -150,12 +150,22 @@
   .modal-acciones .der{display:flex;gap:8px;}
   .btn-sec{background:none;border:1px solid var(--line);color:var(--text-2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;}
   .btn-sec.peligro{color:var(--danger);border-color:#5a2a2a;}
+  .tarifa-btn{background:none;border:none;padding:0;margin:0;font:inherit;color:var(--text-2);cursor:pointer;text-align:left;}
+  .tarifa-btn .cambiar{color:var(--accent);font-weight:500;margin-left:6px;}
+  .pcard{cursor:pointer;}
+  .tf-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .tf-row .tf-name{width:72px;flex-shrink:0;font-size:15px;display:flex;align-items:center;gap:7px;}
+  .tf-row .tf-name .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .tf-row input{margin-bottom:0;}
+  .tf-row .tf-unit{font-size:14px;color:var(--text-2);flex-shrink:0;}
+  .tf-hint{font-size:12px;color:var(--text-3);margin:2px 2px 0;}
+  .modal-acciones.fin{justify-content:flex-end;}
 </style>
 </head>
 <body>
 
 <h1>Registro de horas</h1>
-<p class="sub">Tarifa: 75 &euro;/hora &middot; <span id="estado"><span class="pt"></span>Cargando&hellip;</span></p>
+<p class="sub"><button class="tarifa-btn" id="btn-tarifas" type="button">Tarifa: <span id="tarifa-txt">55 &euro;/hora</span><span class="cambiar">Cambiar</span></button> &middot; <span id="estado"><span class="pt"></span>Cargando&hellip;</span></p>
 
 <div class="totales">
   <div class="total-card">
@@ -172,12 +182,12 @@
   <div class="pcard d">
     <div class="pn"><span class="dot"></span>Diego</div>
     <div class="pe" id="e-diego">0&nbsp;&euro;</div>
-    <div class="ph"><span id="h-diego">0</span> h</div>
+    <div class="ph"><span id="h-diego">0</span> h &middot; <span id="t-diego">55</span>&nbsp;&euro;/h</div>
   </div>
   <div class="pcard i">
     <div class="pn"><span class="dot"></span>Iv&aacute;n</div>
     <div class="pe" id="e-ivan">0&nbsp;&euro;</div>
-    <div class="ph"><span id="h-ivan">0</span> h</div>
+    <div class="ph"><span id="h-ivan">0</span> h &middot; <span id="t-ivan">55</span>&nbsp;&euro;/h</div>
   </div>
 </div>
 
@@ -264,9 +274,39 @@
   </div>
 </div>
 
+<div class="modal" id="modal-tarifas" hidden>
+  <div class="modal-card">
+    <div class="modal-title">Precio por hora</div>
+    <div class="flabel">General (cambia el de todos)</div>
+    <div class="tf-row">
+      <input type="number" id="tf-general" inputmode="decimal" min="0" step="0.5" placeholder="Distinto por persona">
+      <span class="tf-unit">&euro;/h</span>
+    </div>
+    <div class="flabel mt">Por persona</div>
+    <div class="tf-row">
+      <span class="tf-name"><span class="dot" style="background:var(--diego)"></span>Diego</span>
+      <input type="number" id="tf-diego" inputmode="decimal" min="0" step="0.5" placeholder="&euro;/hora">
+      <span class="tf-unit">&euro;/h</span>
+    </div>
+    <div class="tf-row">
+      <span class="tf-name"><span class="dot" style="background:var(--ivan)"></span>Iv&aacute;n</span>
+      <input type="number" id="tf-ivan" inputmode="decimal" min="0" step="0.5" placeholder="&euro;/hora">
+      <span class="tf-unit">&euro;/h</span>
+    </div>
+    <p class="tf-hint">La factura total es la suma de las horas de cada persona por su precio. En &laquo;Ambos&raquo; cada uno cobra a su precio.</p>
+    <div class="modal-acciones fin">
+      <div class="der">
+        <button class="btn-sec" id="tf-cancelar" type="button">Cancelar</button>
+        <button class="add" id="tf-guardar" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
-  var TARIFA = 75;
+  var TARIFA_DEFECTO = 55;
+  var tarifas = { "Diego":TARIFA_DEFECTO, "Iván":TARIFA_DEFECTO }; // euros/hora de cada persona
 
   // --- Almacen compartido en la nube (textdb.online, sin registro) ---
   // Clave privada y aleatoria de este registro. No la compartas si no quieres
@@ -318,12 +358,24 @@
       var raw = localStorage.getItem(CACHE);
       if(!raw) return null;
       var d = JSON.parse(raw);
-      if(Array.isArray(d)) return { registros:d, proyectos:null };
-      return { registros:d.registros||[], proyectos:d.proyectos||null };
+      if(Array.isArray(d)) return { registros:d, proyectos:null, tarifas:null };
+      return { registros:d.registros||[], proyectos:d.proyectos||null, tarifas:d.tarifas||null };
     }catch(e){ return null; }
   }
   function escribirCache(){
-    try{ localStorage.setItem(CACHE, JSON.stringify({ registros:registros, proyectos:proyectos })); }catch(e){}
+    try{ localStorage.setItem(CACHE, JSON.stringify({ registros:registros, proyectos:proyectos, tarifas:tarifas })); }catch(e){}
+  }
+
+  // Tarifas validas por persona; si falta alguna (datos antiguos) se usa la de por defecto.
+  function normalizarTarifas(t){
+    var out = { "Diego":TARIFA_DEFECTO, "Iván":TARIFA_DEFECTO };
+    if(t && typeof t === "object"){
+      ["Diego","Iván"].forEach(function(p){
+        var n = parseFloat(t[p]);
+        if(!isNaN(n) && n >= 0) out[p] = n;
+      });
+    }
+    return out;
   }
 
   // --- Nube: leer ---
@@ -339,6 +391,7 @@
           // Primer arranque: sembrar con los registros iniciales y subirlos.
           registros = semillaInicial();
           proyectos = [PROYECTO_DEFECTO];
+          tarifas = normalizarTarifas(null);
           registros.forEach(function(r){ r.proyecto = proyectos[0]; });
           aplicarProyectos();
           escribirCache();
@@ -346,6 +399,7 @@
         }
         registros = data.registros || [];
         proyectos = (data.proyectos && data.proyectos.length) ? data.proyectos : [PROYECTO_DEFECTO];
+        tarifas = normalizarTarifas(data.tarifas);
         // Migracion: registros antiguos sin proyecto -> proyecto por defecto.
         var faltaba = false;
         registros.forEach(function(r){ if(!r.proyecto){ r.proyecto = proyectos[0]; faltaba = true; } });
@@ -357,7 +411,7 @@
       .catch(function(){
         // Sin red: usar la copia local si existe.
         var c = leerCache();
-        if(c){ registros = c.registros || []; if(c.proyectos && c.proyectos.length){ proyectos = c.proyectos; } }
+        if(c){ registros = c.registros || []; if(c.proyectos && c.proyectos.length){ proyectos = c.proyectos; } if(c.tarifas){ tarifas = normalizarTarifas(c.tarifas); } }
         aplicarProyectos();
         setEstado("offline");
       });
@@ -369,7 +423,7 @@
     escribirCache();
     var cuerpo = new URLSearchParams();
     cuerpo.set("key", KEY);
-    cuerpo.set("value", JSON.stringify({ v:1, registros:registros, proyectos:proyectos }));
+    cuerpo.set("value", JSON.stringify({ v:1, registros:registros, proyectos:proyectos, tarifas:tarifas }));
     return fetch(URL_WRITE, { method:"POST", body:cuerpo })
       .then(function(r){ if(!r.ok) throw new Error("error al guardar"); setEstado("ok"); })
       .catch(function(){ setEstado("offline"); });
@@ -450,6 +504,16 @@
   function colorPersona(p){ return p==="Iván" ? "var(--ivan)" : (p==="Diego" ? "var(--diego)" : (p==="Ambos" ? "var(--ambos)" : "var(--text-3)")); }
   function fmtH(n){ return (Math.round(n*100)/100).toString(); }
   function fmtE(n){ return (Math.round(n*100)/100).toLocaleString("es-ES") + " €"; }
+  function fmtT(n){ return (Math.round(n*100)/100).toLocaleString("es-ES"); }
+
+  // Euros de un registro segun el precio/hora de quien lo hizo.
+  function eurosRegistro(r){
+    var tD = tarifas["Diego"], tI = tarifas["Iván"];
+    if(r.persona==="Diego") return r.horas*tD;
+    if(r.persona==="Iván") return r.horas*tI;
+    if(r.persona==="Ambos") return r.horas*(tD+tI); // cada uno cobra el tiempo completo a su precio
+    return r.horas/2*tD + r.horas/2*tI; // registros antiguos: repartidos a medias
+  }
 
   var MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   function claveDia(d){ return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); }
@@ -472,11 +536,18 @@
     document.getElementById("h-analisis").textContent = fmtH(hA);
     document.getElementById("h-reunion").textContent = fmtH(hR);
     document.getElementById("total-horas").textContent = fmtH(total);
-    document.getElementById("total-euros").innerHTML = fmtE(total*TARIFA).replace(" €","&nbsp;€");
+    var tD = tarifas["Diego"], tI = tarifas["Iván"];
+    var eDiego = hDiego*tD, eIvan = hIvan*tI;
+    document.getElementById("total-euros").innerHTML = fmtE(eDiego+eIvan).replace(" €","&nbsp;€");
     document.getElementById("h-diego").textContent = fmtH(hDiego);
-    document.getElementById("e-diego").innerHTML = fmtE(hDiego*TARIFA).replace(" €","&nbsp;€");
+    document.getElementById("e-diego").innerHTML = fmtE(eDiego).replace(" €","&nbsp;€");
+    document.getElementById("t-diego").textContent = fmtT(tD);
     document.getElementById("h-ivan").textContent = fmtH(hIvan);
-    document.getElementById("e-ivan").innerHTML = fmtE(hIvan*TARIFA).replace(" €","&nbsp;€");
+    document.getElementById("e-ivan").innerHTML = fmtE(eIvan).replace(" €","&nbsp;€");
+    document.getElementById("t-ivan").textContent = fmtT(tI);
+    document.getElementById("tarifa-txt").textContent = (tD===tI)
+      ? (fmtT(tD)+" €/hora")
+      : ("Diego "+fmtT(tD)+" € · Iván "+fmtT(tI)+" €/hora");
 
     diasEl.innerHTML="";
     if(registros.length===0){
@@ -494,12 +565,12 @@
 
     orden.forEach(function(k){
       var items=grupos[k].slice().sort(function(a,b){ return b.ts - a.ts; });
-      var horasDia=0; items.forEach(function(r){ horasDia+=r.horas; });
+      var horasDia=0, eurosDia=0; items.forEach(function(r){ horasDia+=r.horas; eurosDia+=eurosRegistro(r); });
       var d0=new Date(items[0].ts);
 
       var bloque=document.createElement("div"); bloque.className="dia";
       var head=document.createElement("div"); head.className="dia-head";
-      head.innerHTML='<span class="fecha">'+etiquetaDia(d0)+'</span><span class="resumen">'+fmtH(horasDia)+' h · '+fmtE(horasDia*TARIFA)+'</span>';
+      head.innerHTML='<span class="fecha">'+etiquetaDia(d0)+'</span><span class="resumen">'+fmtH(horasDia)+' h · '+fmtE(eurosDia)+'</span>';
       bloque.appendChild(head);
 
       items.forEach(function(r){
@@ -689,6 +760,47 @@
   document.getElementById("ed-eliminar").addEventListener("click", eliminarEditar);
   modalEd.addEventListener("click", function(e){ if(e.target === modalEd) cerrarEditar(); });
 
+  // --- Precio por hora (general y por persona) ---
+  var modalTf = document.getElementById("modal-tarifas");
+  var tfGeneral = document.getElementById("tf-general");
+  var tfDiego = document.getElementById("tf-diego");
+  var tfIvan = document.getElementById("tf-ivan");
+
+  function leerTarifa(el){ var n = parseFloat((el.value||"").replace(",",".")); return (isNaN(n) || n<0) ? null : n; }
+  // El precio general solo se muestra si las dos personas tienen el mismo.
+  function syncGeneral(){
+    var d = leerTarifa(tfDiego), i = leerTarifa(tfIvan);
+    tfGeneral.value = (d!==null && d===i) ? d : "";
+  }
+  function openTarifas(){
+    tfDiego.value = tarifas["Diego"];
+    tfIvan.value = tarifas["Iván"];
+    syncGeneral();
+    modalTf.removeAttribute("hidden");
+  }
+  function cerrarTarifas(){ modalTf.setAttribute("hidden",""); }
+  function guardarTarifas(){
+    var d = leerTarifa(tfDiego), i = leerTarifa(tfIvan);
+    if(d===null){ tfDiego.focus(); return; }
+    if(i===null){ tfIvan.focus(); return; }
+    tarifas = { "Diego":d, "Iván":i };
+    guardarNube(); render(); cerrarTarifas();
+  }
+  tfGeneral.addEventListener("input", function(){
+    var g = leerTarifa(tfGeneral);
+    if(g!==null){ tfDiego.value = g; tfIvan.value = g; }
+  });
+  tfDiego.addEventListener("input", syncGeneral);
+  tfIvan.addEventListener("input", syncGeneral);
+  [tfGeneral, tfDiego, tfIvan].forEach(function(el){
+    el.addEventListener("keydown", function(e){ if(e.key==="Enter") guardarTarifas(); });
+  });
+  document.getElementById("btn-tarifas").addEventListener("click", openTarifas);
+  document.querySelectorAll(".pcard").forEach(function(el){ el.addEventListener("click", openTarifas); });
+  document.getElementById("tf-guardar").addEventListener("click", guardarTarifas);
+  document.getElementById("tf-cancelar").addEventListener("click", cerrarTarifas);
+  modalTf.addEventListener("click", function(e){ if(e.target === modalTf) cerrarTarifas(); });
+
   // Volver a sincronizar al reabrir/enfocar la pestana (para ver cambios hechos en otro dispositivo).
   function refrescar(){ if(document.visibilityState==="visible"){ cargarNube().then(render); } }
   document.addEventListener("visibilitychange", refrescar);
@@ -699,6 +811,7 @@
   if(inicial){
     registros = inicial.registros || [];
     if(inicial.proyectos && inicial.proyectos.length){ proyectos = inicial.proyectos; }
+    if(inicial.tarifas){ tarifas = normalizarTarifas(inicial.tarifas); }
   }
   aplicarProyectos();
   render();
